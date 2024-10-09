@@ -1,0 +1,11 @@
+GET http://localhost:8080/api/passwords
+
+######################################################
+POST http://localhost:8080/api/passwords
+Content-Type: application/json
+
+{
+    "password": "password",
+    "application": "youtube"
+}
+
