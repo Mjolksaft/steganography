@@ -16,4 +16,14 @@ type Password struct {
 	UpdatedAt      sql.NullTime
 	HashedPassword sql.NullString
 	Application    sql.NullString
+	UserID         uuid.NullUUID
+}
+
+type User struct {
+	ID             uuid.UUID
+	CreatedAt      sql.NullTime
+	UpdatedAt      sql.NullTime
+	HashedPassword sql.NullString
+	Username       sql.NullString
+	IsAdmin        sql.NullBool
 }
