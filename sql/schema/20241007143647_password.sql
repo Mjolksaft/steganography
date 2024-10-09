@@ -1,11 +1,22 @@
 -- +goose Up
-CREATE TABLE password (
+CREATE TABLE users (
     id UUID PRIMARY KEY,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     hashed_password TEXT,
-    application TEXT
+    username TEXT
 );
 
+CREATE TABLE passwords (
+    id UUID PRIMARY KEY,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    hashed_password TEXT,
+    application TEXT,
+    user_id UUID REFERENCES users(id)
+);
+
+
 -- +goose Down
-DROP TABLE password;
+DROP TABLE passwords;
+DROP TABLE users;

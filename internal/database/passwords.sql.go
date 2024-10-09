@@ -8,26 +8,31 @@ package database
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
-const createOne = `-- name: CreateOne :one
-INSERT INTO password (id, created_at, hashed_password, application)
+const createPassword = `-- name: CreatePassword :one
+INSERT INTO passwords (id, created_at, updated_at, hashed_password, application, user_id)
 VALUES (
     gen_random_uuid(),
     NOW(),
+    NOW(),
     $1,
-    $2
+    $2,
+    $3
 )
-RETURNING id, created_at, updated_at, hashed_password, application
+RETURNING id, created_at, updated_at, hashed_password, application, user_id
 `
 
-type CreateOneParams struct {
+type CreatePasswordParams struct {
 	HashedPassword sql.NullString
 	Application    sql.NullString
+	UserID         uuid.NullUUID
 }
 
-func (q *Queries) CreateOne(ctx context.Context, arg CreateOneParams) (Password, error) {
-	row := q.db.QueryRowContext(ctx, createOne, arg.HashedPassword, arg.Application)
+func (q *Queries) CreatePassword(ctx context.Context, arg CreatePasswordParams) (Password, error) {
+	row := q.db.QueryRowContext(ctx, createPassword, arg.HashedPassword, arg.Application, arg.UserID)
 	var i Password
 	err := row.Scan(
 		&i.ID,
@@ -35,6 +40,65 @@ func (q *Queries) CreateOne(ctx context.Context, arg CreateOneParams) (Password,
 		&i.UpdatedAt,
 		&i.HashedPassword,
 		&i.Application,
+		&i.UserID,
 	)
 	return i, err
+}
+
+const getPassword = `-- name: GetPassword :one
+SELECT id, created_at, updated_at, hashed_password, application, user_id FROM passwords
+WHERE application = $1 AND user_id = $2
+`
+
+type GetPasswordParams struct {
+	Application sql.NullString
+	UserID      uuid.NullUUID
+}
+
+func (q *Queries) GetPassword(ctx context.Context, arg GetPasswordParams) (Password, error) {
+	row := q.db.QueryRowContext(ctx, getPassword, arg.Application, arg.UserID)
+	var i Password
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.HashedPassword,
+		&i.Application,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getPasswords = `-- name: GetPasswords :many
+SELECT id, created_at, updated_at, hashed_password, application, user_id FROM passwords
+`
+
+func (q *Queries) GetPasswords(ctx context.Context) ([]Password, error) {
+	rows, err := q.db.QueryContext(ctx, getPasswords)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Password
+	for rows.Next() {
+		var i Password
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.HashedPassword,
+			&i.Application,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
