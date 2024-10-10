@@ -52,7 +52,7 @@ func (h PasswordHandler) CreatePassword(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// write result to user
-	w.WriteHeader(200)
+	w.WriteHeader(201)
 }
 
 func (h PasswordHandler) GetPassword(w http.ResponseWriter, r *http.Request) {

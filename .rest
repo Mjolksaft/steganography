@@ -6,7 +6,7 @@ Content-Type: application/json
 
 {
     "password": "password",
-    "application": "youtube"
+    "application": "youtubes"
 }
 
 ######################################################
