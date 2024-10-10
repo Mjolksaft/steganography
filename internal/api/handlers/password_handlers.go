@@ -40,7 +40,7 @@ func (h PasswordHandler) CreatePassword(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	newPassword, err := dbQueries.CreatePassword(r.Context(), database.CreatePasswordParams{
+	_, err = dbQueries.CreatePassword(r.Context(), database.CreatePasswordParams{
 		HashedPassword: sql.NullString{String: string(hashedPassword), Valid: true},
 		Application:    sql.NullString{String: body.Application, Valid: true},
 	})
@@ -51,18 +51,8 @@ func (h PasswordHandler) CreatePassword(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// encode the new user
-	encodedPassword, err := json.Marshal(newPassword)
-	if err != nil {
-		fmt.Println(err)
-		http.Error(w, "error mashaling", http.StatusInternalServerError)
-		return
-	}
-
 	// write result to user
-	w.Header().Add("content-type", "application/json; charset=utf-8")
-	w.WriteHeader(200)
-	w.Write([]byte(encodedPassword))
+	w.WriteHeader(201)
 }
 
 func (h PasswordHandler) GetPassword(w http.ResponseWriter, r *http.Request) {
