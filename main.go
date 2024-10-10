@@ -11,12 +11,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type CLIcommand struct {
-	Name        string
-	Description string
-	Callback    func() error
-}
-
 func main() {
 	godotenv.Load()
 	// get database connection
