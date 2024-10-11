@@ -45,6 +45,16 @@ func (q *Queries) CreatePassword(ctx context.Context, arg CreatePasswordParams) 
 	return i, err
 }
 
+const deletePassword = `-- name: DeletePassword :exec
+DELETE FROM passwords
+WHERE id = $1
+`
+
+func (q *Queries) DeletePassword(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deletePassword, id)
+	return err
+}
+
 const getPassword = `-- name: GetPassword :one
 SELECT id, created_at, updated_at, hashed_password, application, user_id FROM passwords
 WHERE application = $1 AND user_id = $2
@@ -101,4 +111,21 @@ func (q *Queries) GetPasswords(ctx context.Context) ([]Password, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updatePassword = `-- name: UpdatePassword :exec
+UPDATE passwords
+SET hashed_password = $1
+WHERE application = $2 AND user_id = $3
+`
+
+type UpdatePasswordParams struct {
+	HashedPassword sql.NullString
+	Application    sql.NullString
+	UserID         uuid.NullUUID
+}
+
+func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updatePassword, arg.HashedPassword, arg.Application, arg.UserID)
+	return err
 }

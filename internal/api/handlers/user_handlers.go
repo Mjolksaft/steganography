@@ -75,6 +75,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+
 	// decode the body
 	type password struct {
 		Username string `json:"username"`
