@@ -21,6 +21,7 @@ Content-Type: application/json
 ######################################################
 POST http://localhost:8080/api/users
 Content-Type: application/json
+Cookie: session_token=d7cd338e-e10f-4b3a-8fed-ac7c0fb799e9; Expires=Fri, 11 Oct 2024 10:14:01 GMT
 
 {
     "username": "David",

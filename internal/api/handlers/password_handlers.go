@@ -13,6 +13,7 @@ type PasswordHandler struct {
 	DB *sql.DB
 }
 
+// create password with password and application name
 func (h PasswordHandler) CreatePassword(w http.ResponseWriter, r *http.Request) {
 	type dataStruct struct {
 		Password    string `json:"password"`
@@ -55,8 +56,39 @@ func (h PasswordHandler) CreatePassword(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(201)
 }
 
-func (h PasswordHandler) GetPassword(w http.ResponseWriter, r *http.Request) {
+// update password on id
+func (h PasswordHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("content-type", "text/plain")
 	w.WriteHeader(200)
 	w.Write([]byte("Hello there"))
+}
+
+// delete password on id
+func (h PasswordHandler) DeletePassword(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("content-type", "text/plain")
+	w.WriteHeader(200)
+	w.Write([]byte("Hello there"))
+}
+
+// get password based on id or if not any id get all
+func (h PasswordHandler) GetPassword(w http.ResponseWriter, r *http.Request) {
+	// check if id exsits
+	application := r.FormValue("application")
+	// get the id from the jsonwebtoken
+	if application != "" {
+		// if it does get specific password
+		fmt.Println("there is not id")
+		// dbQueries := database.New(h.DB)
+		// dbQueries.GetPassword(
+		// 	r.Context(),
+		// 	// database.GetPasswordParams{Application: sql.NullString{String: application, Valid: true}, UserID: uuid.NullUUID{UUID: id, Valid: true}},
+		// )
+	} else {
+		// if it doesnt get the all passwords
+		fmt.Println("asd")
+	}
+
+	w.Header().Add("content-type", "text/plain")
+	w.WriteHeader(200)
+	// w.Write([]byte(id))
 }
