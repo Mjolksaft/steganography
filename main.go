@@ -29,7 +29,6 @@ func main() {
 	passwordHandlers := handlers.PasswordHandler{DB: db}
 
 	mux.HandleFunc("POST /api/passwords", passwordHandlers.CreatePassword)
-	mux.HandleFunc("GET /api/passwords", passwordHandlers.GetPassword)
 
 	userHandlers := handlers.UserHandler{DB: db}
 
@@ -39,10 +38,4 @@ func main() {
 
 	fmt.Println("now listening on port: 8080")
 	server.ListenAndServe()
-
-	// check login credentials
-
-	// start CLIloop from mainmenu
-
-	// start a api
 }
