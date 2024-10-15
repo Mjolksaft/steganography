@@ -3,14 +3,23 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"steganography/internal/auth"
 	"steganography/internal/database"
+	"steganography/internal/middleware"
 	"time"
 )
 
 type UserHandler struct {
 	DB *sql.DB
+}
+
+// Make the session manager accessible within the package
+var sessionManager *auth.SessionManager
+
+func InitSessionManager(sm *auth.SessionManager) {
+	sessionManager = sm
 }
 
 type User struct {
@@ -69,6 +78,16 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	expired_at := time.Now().Add(time.Second * 120)
+
+	sessionToken := sessionManager.CreateSession(loggedUser.ID, expired_at)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    "session_token",
+		Value:   sessionToken,
+		Expires: expired_at,
+	})
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK) // Use a constant for the status code
 	w.Write(encoded)
@@ -123,5 +142,14 @@ func (h UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	// Retrieve userID from the context
+	userID, ok := r.Context().Value(middleware.KEY).(string)
+	fmt.Println(userID, ok)
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusInternalServerError)
+		return
+	}
 
+	// Use userID for logic (e.g., fetching user details from the database)
+	fmt.Fprintf(w, "User ID from context: %s", userID)
 }

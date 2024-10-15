@@ -27,3 +27,5 @@ Content-Type: application/json
     "password": "password"
 }
 
+######################################################
+GET http://localhost:8080/api/users
