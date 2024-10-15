@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"steganography/internal/auth"
 	"steganography/internal/database"
+	"steganography/internal/middleware"
 	"time"
 )
 
@@ -141,21 +142,14 @@ func (h UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("hello world")
-	// Retrieve a specific cookie by name
-	sessionCookie, err := r.Cookie("session_token")
-	if err != nil {
-		fmt.Println("Error retrieving cookie:", err)
+	// Retrieve userID from the context
+	userID, ok := r.Context().Value(middleware.KEY).(string)
+	fmt.Println(userID, ok)
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusInternalServerError)
 		return
 	}
 
-	// Retrieve all cookies
-	allCookies := r.Cookies()
-	session, exists := sessionManager.GetSession(sessionCookie.Value)
-	if !exists {
-		fmt.Println("session does not exists")
-		return
-	}
-	fmt.Println("Session Cookie:", session)
-	fmt.Println("All Cookies:", allCookies)
+	// Use userID for logic (e.g., fetching user details from the database)
+	fmt.Fprintf(w, "User ID from context: %s", userID)
 }

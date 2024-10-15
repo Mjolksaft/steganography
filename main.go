@@ -7,6 +7,7 @@ import (
 	"os"
 	"steganography/internal/api/handlers"
 	"steganography/internal/auth"
+	"steganography/internal/middleware"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -18,6 +19,7 @@ func main() {
 	//inject the sessionManager to the handlers that need it
 	sessionManager = auth.NewSessionManager()
 	handlers.InitSessionManager(sessionManager)
+	middleware.InitSessionManager(sessionManager)
 
 	godotenv.Load()
 
@@ -42,7 +44,7 @@ func main() {
 
 	mux.HandleFunc("POST /api/login", userHandlers.Login)
 	mux.HandleFunc("POST /api/users", userHandlers.CreateUser)
-	mux.HandleFunc("GET /api/users", userHandlers.GetUser)
+	mux.Handle("GET /api/users", middleware.ValidateSession(http.HandlerFunc(userHandlers.GetUser))) // Apply middleware
 
 	fmt.Println("now listening on port: 8080")
 	server.ListenAndServe()
