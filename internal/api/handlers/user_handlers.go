@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"steganography/internal/auth"
 	"steganography/internal/database"
@@ -11,6 +12,13 @@ import (
 
 type UserHandler struct {
 	DB *sql.DB
+}
+
+// Make the session manager accessible within the package
+var sessionManager *auth.SessionManager
+
+func InitSessionManager(sm *auth.SessionManager) {
+	sessionManager = sm
 }
 
 type User struct {
@@ -69,6 +77,16 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	expired_at := time.Now().Add(time.Second * 120)
+
+	sessionToken := sessionManager.CreateSession(loggedUser.ID, expired_at)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    "session_token",
+		Value:   sessionToken,
+		Expires: expired_at,
+	})
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK) // Use a constant for the status code
 	w.Write(encoded)
@@ -123,5 +141,21 @@ func (h UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("hello world")
+	// Retrieve a specific cookie by name
+	sessionCookie, err := r.Cookie("session_token")
+	if err != nil {
+		fmt.Println("Error retrieving cookie:", err)
+		return
+	}
 
+	// Retrieve all cookies
+	allCookies := r.Cookies()
+	session, exists := sessionManager.GetSession(sessionCookie.Value)
+	if !exists {
+		fmt.Println("session does not exists")
+		return
+	}
+	fmt.Println("Session Cookie:", session)
+	fmt.Println("All Cookies:", allCookies)
 }

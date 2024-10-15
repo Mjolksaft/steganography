@@ -6,13 +6,21 @@ import (
 	"net/http"
 	"os"
 	"steganography/internal/api/handlers"
+	"steganography/internal/auth"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
+var sessionManager *auth.SessionManager
+
 func main() {
+	//inject the sessionManager to the handlers that need it
+	sessionManager = auth.NewSessionManager()
+	handlers.InitSessionManager(sessionManager)
+
 	godotenv.Load()
+
 	// get database connection
 	db, err := sql.Open("postgres", os.Getenv("CONNECTION_STRING"))
 
