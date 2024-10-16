@@ -14,16 +14,16 @@ type Password struct {
 	ID             uuid.UUID
 	CreatedAt      sql.NullTime
 	UpdatedAt      sql.NullTime
-	HashedPassword sql.NullString
-	Application    sql.NullString
-	UserID         uuid.NullUUID
+	HashedPassword string
+	Application    string
+	UserID         uuid.UUID
 }
 
 type User struct {
 	ID             uuid.UUID
 	CreatedAt      sql.NullTime
 	UpdatedAt      sql.NullTime
-	HashedPassword sql.NullString
-	Username       sql.NullString
+	HashedPassword string
+	Username       string
 	IsAdmin        sql.NullBool
 }

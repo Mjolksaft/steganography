@@ -50,14 +50,14 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Query the user by username
 	dbQueries := database.New(h.DB)
-	user, err := dbQueries.GetUser(r.Context(), sql.NullString{String: data.Username, Valid: true}) // No need for sql.NullString
+	user, err := dbQueries.GetUser(r.Context(), data.Username) // No need for sql.NullString
 	if err != nil {
 		http.Error(w, "incorrect username or password", http.StatusUnauthorized)
 		return
 	}
 
 	// Check the password
-	if err := auth.CheckPassword(user.HashedPassword.String, data.Password); err != nil {
+	if err := auth.CheckPassword(user.HashedPassword, data.Password); err != nil {
 		http.Error(w, "incorrect username or password", http.StatusUnauthorized)
 		return
 	}
@@ -67,8 +67,8 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		ID:             user.ID.String(),
 		CreatedAt:      user.CreatedAt.Time,
 		UpdatedAt:      user.UpdatedAt.Time,
-		Username:       user.Username.String,
-		HashedPassword: user.HashedPassword.String, // It's not necessary to send this back
+		Username:       user.Username,
+		HashedPassword: user.HashedPassword, // It's not necessary to send this back
 	}
 
 	//encode the user
@@ -119,8 +119,8 @@ func (h UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	// add to database
 	dbQueries := database.New(h.DB)
 	user, err := dbQueries.CreateUser(r.Context(), database.CreateUserParams{
-		Username:       sql.NullString{String: data.Username, Valid: true},
-		HashedPassword: sql.NullString{String: string(hashedPassword), Valid: true},
+		Username:       data.Username,
+		HashedPassword: string(hashedPassword),
 	})
 
 	if err != nil {

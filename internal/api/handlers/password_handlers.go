@@ -3,10 +3,11 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"steganography/internal/auth"
 	"steganography/internal/database"
+	"steganography/internal/middleware"
+
+	"github.com/google/uuid"
 )
 
 type PasswordHandler struct {
@@ -15,43 +16,37 @@ type PasswordHandler struct {
 
 // create password with password and application name
 func (h PasswordHandler) CreatePassword(w http.ResponseWriter, r *http.Request) {
+	// validate the cookie with middleware
+	userID := r.Context().Value(middleware.KEY).(string)
+
 	type dataStruct struct {
 		Password    string `json:"password"`
 		Application string `json:"application"`
 	}
 
-	// Create a decoder for the request body
+	// decode the body
 	decoder := json.NewDecoder(r.Body)
-	defer r.Body.Close() // Ensure body is closed after reading
-
-	// Decode the JSON body into the dataStruct
-	var body dataStruct
-	if err := decoder.Decode(&body); err != nil {
-		fmt.Println(err)
-		http.Error(w, "Error decoding JSON", http.StatusBadRequest) // Bad request if JSON is invalid
+	var data dataStruct
+	if err := decoder.Decode(&data); err != nil {
+		http.Error(w, "error decoding", http.StatusInternalServerError)
 		return
 	}
-	// get the query
+
+	//convert to uuid
+	parsedID, err := uuid.Parse(userID)
+	if err != nil {
+		http.Error(w, "error decoding", http.StatusInternalServerError)
+		return
+	}
+
+	//make the request
 	dbQueries := database.New(h.DB)
-	// complete the query
-	hashedPassword, err := auth.HashPassword(body.Password)
-	if err != nil {
-		fmt.Println(err)
-		http.Error(w, "error hashing password", http.StatusInternalServerError)
+	arg := database.CreatePasswordParams{HashedPassword: data.Password, Application: data.Application, UserID: parsedID}
+	if err = dbQueries.CreatePassword(r.Context(), arg); err != nil {
+		http.Error(w, "error decoding", http.StatusInternalServerError)
 		return
 	}
 
-	_, err = dbQueries.CreatePassword(r.Context(), database.CreatePasswordParams{
-		HashedPassword: sql.NullString{String: string(hashedPassword), Valid: true},
-		Application:    sql.NullString{String: body.Application, Valid: true},
-	})
-
-	if err != nil {
-		fmt.Println(err)
-		http.Error(w, "error adding to database", http.StatusInternalServerError)
-		return
-	}
-
-	// write result to user
+	// response returns nothing
 	w.WriteHeader(201)
 }

@@ -36,12 +36,14 @@ func main() {
 	server := http.Server{Handler: mux, Addr: ":8080"}
 
 	mux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("public"))))
+
+	//password endpoits!!!!
 	passwordHandlers := handlers.PasswordHandler{DB: db}
+	mux.Handle("POST /api/passwords", middleware.ValidateSession(http.HandlerFunc(passwordHandlers.CreatePassword))) // Apply middleware
+	// mux.HandleFunc("POST /api/passwords", passwordHandlers.CreatePassword)
 
-	mux.HandleFunc("POST /api/passwords", passwordHandlers.CreatePassword)
-
+	//users endpoits!!!!
 	userHandlers := handlers.UserHandler{DB: db}
-
 	mux.HandleFunc("POST /api/login", userHandlers.Login)
 	mux.HandleFunc("POST /api/users", userHandlers.CreateUser)
 	mux.Handle("GET /api/users", middleware.ValidateSession(http.HandlerFunc(userHandlers.GetUser))) // Apply middleware

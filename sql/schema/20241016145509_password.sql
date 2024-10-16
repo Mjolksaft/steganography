@@ -1,0 +1,24 @@
+-- +goose Up
+ALTER TABLE passwords
+ALTER COLUMN hashed_password SET NOT NULL,
+ALTER COLUMN application SET NOT NULL,
+ALTER COLUMN user_id SET NOT NULL;
+
+
+ALTER TABLE users
+ALTER COLUMN hashed_password SET NOT NULL,
+ALTER COLUMN username SET NOT NULL;
+
+
+-- +goose Down
+ALTER TABLE passwords
+ALTER COLUMN hashed_password DROP NOT NULL,
+ALTER COLUMN application DROP NOT NULL,
+ALTER COLUMN user_id DROP NOT NULL;
+
+ALTER TABLE users
+ALTER COLUMN hashed_password DROP NOT NULL,
+ALTER COLUMN username DROP NOT NULL;
+
+
+

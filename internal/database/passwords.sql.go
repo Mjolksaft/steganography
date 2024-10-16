@@ -7,12 +7,11 @@ package database
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
 
-const createPassword = `-- name: CreatePassword :one
+const createPassword = `-- name: CreatePassword :exec
 INSERT INTO passwords (id, created_at, updated_at, hashed_password, application, user_id)
 VALUES (
     gen_random_uuid(),
@@ -22,110 +21,15 @@ VALUES (
     $2,
     $3
 )
-RETURNING id, created_at, updated_at, hashed_password, application, user_id
 `
 
 type CreatePasswordParams struct {
-	HashedPassword sql.NullString
-	Application    sql.NullString
-	UserID         uuid.NullUUID
+	HashedPassword string
+	Application    string
+	UserID         uuid.UUID
 }
 
-func (q *Queries) CreatePassword(ctx context.Context, arg CreatePasswordParams) (Password, error) {
-	row := q.db.QueryRowContext(ctx, createPassword, arg.HashedPassword, arg.Application, arg.UserID)
-	var i Password
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.HashedPassword,
-		&i.Application,
-		&i.UserID,
-	)
-	return i, err
-}
-
-const deletePassword = `-- name: DeletePassword :exec
-DELETE FROM passwords
-WHERE id = $1
-`
-
-func (q *Queries) DeletePassword(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deletePassword, id)
-	return err
-}
-
-const getPassword = `-- name: GetPassword :one
-SELECT id, created_at, updated_at, hashed_password, application, user_id FROM passwords
-WHERE application = $1 AND user_id = $2
-`
-
-type GetPasswordParams struct {
-	Application sql.NullString
-	UserID      uuid.NullUUID
-}
-
-func (q *Queries) GetPassword(ctx context.Context, arg GetPasswordParams) (Password, error) {
-	row := q.db.QueryRowContext(ctx, getPassword, arg.Application, arg.UserID)
-	var i Password
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.HashedPassword,
-		&i.Application,
-		&i.UserID,
-	)
-	return i, err
-}
-
-const getPasswords = `-- name: GetPasswords :many
-SELECT id, created_at, updated_at, hashed_password, application, user_id FROM passwords
-`
-
-func (q *Queries) GetPasswords(ctx context.Context) ([]Password, error) {
-	rows, err := q.db.QueryContext(ctx, getPasswords)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Password
-	for rows.Next() {
-		var i Password
-		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.HashedPassword,
-			&i.Application,
-			&i.UserID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const updatePassword = `-- name: UpdatePassword :exec
-UPDATE passwords
-SET hashed_password = $1
-WHERE application = $2 AND user_id = $3
-`
-
-type UpdatePasswordParams struct {
-	HashedPassword sql.NullString
-	Application    sql.NullString
-	UserID         uuid.NullUUID
-}
-
-func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
-	_, err := q.db.ExecContext(ctx, updatePassword, arg.HashedPassword, arg.Application, arg.UserID)
+func (q *Queries) CreatePassword(ctx context.Context, arg CreatePasswordParams) error {
+	_, err := q.db.ExecContext(ctx, createPassword, arg.HashedPassword, arg.Application, arg.UserID)
 	return err
 }

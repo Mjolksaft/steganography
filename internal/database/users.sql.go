@@ -7,7 +7,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -23,8 +22,8 @@ RETURNING id, created_at, updated_at, hashed_password, username, is_admin
 `
 
 type CreateUserParams struct {
-	Username       sql.NullString
-	HashedPassword sql.NullString
+	Username       string
+	HashedPassword string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -46,7 +45,7 @@ SELECT id, created_at, updated_at, hashed_password, username, is_admin FROM user
 WHERE username = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, username sql.NullString) (User, error) {
+func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUser, username)
 	var i User
 	err := row.Scan(
@@ -58,38 +57,4 @@ func (q *Queries) GetUser(ctx context.Context, username sql.NullString) (User, e
 		&i.IsAdmin,
 	)
 	return i, err
-}
-
-const getUsers = `-- name: GetUsers :many
-SELECT id, created_at, updated_at, hashed_password, username, is_admin FROM users
-`
-
-func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, getUsers)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []User
-	for rows.Next() {
-		var i User
-		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.HashedPassword,
-			&i.Username,
-			&i.IsAdmin,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
