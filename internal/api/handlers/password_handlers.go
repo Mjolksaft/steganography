@@ -61,6 +61,18 @@ func (h PasswordHandler) DeletePassword(w http.ResponseWriter, r *http.Request) 
 
 }
 
+// Retrieves a password entry for a specific application for the authenticated user. If no application_name is provided, return all passwords for the user.
 func (h PasswordHandler) GetPassword(w http.ResponseWriter, r *http.Request) {
+	// read the query param
+	application := r.FormValue("application_name")
 
+	if application != "" {
+		// return specific password
+
+		// dbQueries := database.New(h.DB)
+		// dbQueries.GetPassword
+	} else {
+		// return passwords
+
+	}
 }
