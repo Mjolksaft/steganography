@@ -1,0 +1,112 @@
+Passwords:
+    id: uuid,  
+    created_at: TIME 
+    updated_at: TIME
+    hashed_password: STRING
+    application: STRING  
+    user_id: STRING
+
+Users:
+    id: uuid,  
+    created_at: TIME 
+    updated_at: TIME
+    hashed_password: STRING
+    username: STRING  unique 
+    is_admin: boolean 
+
+
+Users API (/api/users):
+    POST /api/users - Create User
+        Requirements: None
+        Body: hashed_password, username
+        Outputs: statusCode(201)
+        Description: Allows a user to create an account with a username and password.
+
+    PUT /api/users/{user_id} - Update User
+        Requirements: Authentication (only the user or an admin can update)
+        Body: Fields to change (e.g., username, password)
+        Outputs: statusCode(200)
+        Description: Allows a user to update their own account or an admin to update any user
+
+    DELETE /api/users/{user_id} - Delete User
+        Requirements: Authentication (only the user or an admin can delete)
+        Body: None
+        Outputs: statusCode(200)
+        Description: Allows a user to delete their own account or an admin to delete any account.
+
+    GET /api/users/{user_id} - Get User Profile
+        Requirements: Authentication (only for private data)
+        Outputs: statusCode(200) and user data
+        Description: Returns user profile data by user_id. If no ID is provided, it returns the authenticated users profile.
+
+
+Passwords API (/api/passwords):
+    POST /api/passwords - Create Password Entry
+        Requirements: Authentication
+        Body: application, hashed_password
+        Outputs: statusCode(201)
+        Description: Creates a new password entry for the authenticated user tied to a specific application.
+
+    PUT /api/passwords/{password_id} - Update Password Entry
+        Requirements: Authentication (user must own the password)
+        Body: Fields to change (e.g., update hashed_password or application)
+        Outputs: statusCode(200)
+        Description: Updates an existing password entry for the authenticated user.
+
+    DELETE /api/passwords/{password_id} - Delete Password Entry
+        Requirements: Authentication (user must own the password)
+        Body: None
+        Outputs: statusCode(200)
+        Description: Deletes a password entry by its password_id.
+
+    GET /api/passwords?application_name={application_name} - Get Password by Application
+        Requirements: Authentication
+        Body: None
+        Outputs: statusCode(200) and password data
+        Description: Retrieves a password entry for a specific application for the authenticated user. If no application_name is provided, return all passwords for the user.
+
+Admin API (/admin):
+    User Management:
+        POST /admin/users - Create Admin User
+            Requirements: Authentication, is_admin
+            Body: hashed_password, username, is_admin (optional to specify if the new user should also be an admin)
+            Outputs: statusCode(201)
+            Description: Allows an admin to create a new user (including other admins).
+
+        PUT /admin/users/{user_id} - Update Any User
+            Requirements: Authentication, is_admin
+            Body: Fields to change (e.g., username, is_admin, etc.)
+            Outputs: statusCode(200)
+            Description: Allows an admin to update any users profile, including admin status.
+
+        DELETE /admin/users/{user_id} - Delete Any User
+            Requirements: Authentication, is_admin
+            Body: None
+            Outputs: statusCode(200)
+            Description: Allows an admin to delete any user account.
+
+        GET /admin/users - Get All Users
+            Requirements: Authentication, is_admin
+            Body: None
+            Outputs: statusCode(200) and list of users
+            Description: Allows an admin to retrieve a list of all users.
+
+    Password Management:
+        PUT /admin/passwords/{password_id} - Update Any Users Password
+            Requirements: Authentication, is_admin
+            Body: Fields to change (e.g., update hashed_password, application)
+            Outputs: statusCode(200)
+            Description: Allows an admin to update any users password entry.
+
+        DELETE /admin/passwords/{password_id} - Delete Any Users Password
+            Requirements: Authentication, is_admin
+            Body: None
+            Outputs: statusCode(200)
+            Description: Allows an admin to delete any users password entry.
+
+        GET /admin/passwords - Get All Passwords
+            Requirements: Authentication, is_admin
+            Body: None
+            Outputs: statusCode(200) and list of passwords
+            Description: Allows an admin to retrieve all password entries across all users.
+
