@@ -40,3 +40,11 @@ func ValidateSession(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r) // start the next handler
 	})
 }
+
+// add middleware to check if the session is valid
+func ValidateAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check if is_admin == True
+		next.ServeHTTP(w, r) // start the next handler
+	})
+}

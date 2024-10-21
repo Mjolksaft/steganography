@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"steganography/internal/auth"
 	"steganography/internal/database"
 	"steganography/internal/middleware"
 
@@ -12,6 +13,7 @@ import (
 
 type PasswordHandler struct {
 	DB *sql.DB
+	SM *auth.SessionManager
 }
 
 // create password with password and application name
@@ -49,4 +51,16 @@ func (h PasswordHandler) CreatePassword(w http.ResponseWriter, r *http.Request) 
 
 	// response returns nothing
 	w.WriteHeader(201)
+}
+
+func (h PasswordHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h PasswordHandler) DeletePassword(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h PasswordHandler) GetPassword(w http.ResponseWriter, r *http.Request) {
+
 }

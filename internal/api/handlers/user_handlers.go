@@ -13,13 +13,7 @@ import (
 
 type UserHandler struct {
 	DB *sql.DB
-}
-
-// Make the session manager accessible within the package
-var sessionManager *auth.SessionManager
-
-func InitSessionManager(sm *auth.SessionManager) {
-	sessionManager = sm
+	SM *auth.SessionManager
 }
 
 type User struct {
@@ -80,7 +74,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	expired_at := time.Now().Add(time.Second * 120)
 
-	sessionToken := sessionManager.CreateSession(loggedUser.ID, expired_at)
+	sessionToken := h.SM.CreateSession(loggedUser.ID, expired_at)
 
 	http.SetCookie(w, &http.Cookie{
 		Name:    "session_token",
@@ -152,4 +146,12 @@ func (h UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	// Use userID for logic (e.g., fetching user details from the database)
 	fmt.Fprintf(w, "User ID from context: %s", userID)
+}
+
+func (h UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+
 }
