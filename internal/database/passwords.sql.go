@@ -12,7 +12,7 @@ import (
 )
 
 const createPassword = `-- name: CreatePassword :exec
-INSERT INTO passwords (id, created_at, updated_at, hashed_password, application, user_id)
+INSERT INTO passwords (id, created_at, updated_at, hashed_password, application_name, user_id)
 VALUES (
     gen_random_uuid(),
     NOW(),
@@ -24,12 +24,71 @@ VALUES (
 `
 
 type CreatePasswordParams struct {
-	HashedPassword string
-	Application    string
-	UserID         uuid.UUID
+	HashedPassword  string
+	ApplicationName string
+	UserID          uuid.UUID
 }
 
 func (q *Queries) CreatePassword(ctx context.Context, arg CreatePasswordParams) error {
-	_, err := q.db.ExecContext(ctx, createPassword, arg.HashedPassword, arg.Application, arg.UserID)
+	_, err := q.db.ExecContext(ctx, createPassword, arg.HashedPassword, arg.ApplicationName, arg.UserID)
 	return err
+}
+
+const getPassword = `-- name: GetPassword :one
+SELECT id, created_at, updated_at, hashed_password, application_name, user_id FROM passwords
+WHERE application_name = $1 AND user_id = $2
+`
+
+type GetPasswordParams struct {
+	ApplicationName string
+	UserID          uuid.UUID
+}
+
+func (q *Queries) GetPassword(ctx context.Context, arg GetPasswordParams) (Password, error) {
+	row := q.db.QueryRowContext(ctx, getPassword, arg.ApplicationName, arg.UserID)
+	var i Password
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.HashedPassword,
+		&i.ApplicationName,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getPasswords = `-- name: GetPasswords :many
+SELECT id, created_at, updated_at, hashed_password, application_name, user_id FROM passwords
+WHERE user_id = $1
+`
+
+func (q *Queries) GetPasswords(ctx context.Context, userID uuid.UUID) ([]Password, error) {
+	rows, err := q.db.QueryContext(ctx, getPasswords, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Password
+	for rows.Next() {
+		var i Password
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.HashedPassword,
+			&i.ApplicationName,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

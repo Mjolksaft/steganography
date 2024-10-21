@@ -36,7 +36,6 @@ func ValidateSession(next http.Handler) http.Handler {
 		// Store the userID in the context
 		ctx := context.WithValue(r.Context(), KEY, session.UserID)
 		r = r.WithContext(ctx)
-
 		next.ServeHTTP(w, r) // start the next handler
 	})
 }
