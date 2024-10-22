@@ -11,12 +11,12 @@ import (
 )
 
 type Password struct {
-	ID             uuid.UUID
-	CreatedAt      sql.NullTime
-	UpdatedAt      sql.NullTime
-	HashedPassword string
-	Application    string
-	UserID         uuid.UUID
+	ID              uuid.UUID
+	CreatedAt       sql.NullTime
+	UpdatedAt       sql.NullTime
+	HashedPassword  string
+	ApplicationName string
+	UserID          uuid.UUID
 }
 
 type User struct {
