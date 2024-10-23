@@ -49,7 +49,7 @@ func main() {
 	mux.Handle("DELETE /api/passwords/{password_id}", middleware.ValidateSession(http.HandlerFunc(passwordHandlers.DeletePassword))) // Delete password entry (authenticated)
 	mux.Handle("GET /api/passwords", middleware.ValidateSession(http.HandlerFunc(passwordHandlers.GetPassword)))                     // Get password entry (authenticated)
 
-	// admin endpoints!!!!
+	// ------------------------------------------------------------------- admin endpoints!!!! ------------------------------------------------------------------ -//
 	adminHandlers := handlers.AdminHandler{DB: db, SM: sessionManager}
 	mux.Handle("POST /admin/users", middleware.ValidateAdmin(http.HandlerFunc(adminHandlers.CreateUser)))             // Create user (admin only)
 	mux.Handle("PUT /admin/users/{user_id}", middleware.ValidateAdmin(http.HandlerFunc(adminHandlers.UpdateUser)))    // Update any user (admin only)

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"log/slog"
 	"sync"
 	"time"
 
@@ -33,6 +34,8 @@ func (sm *SessionManager) CreateSession(userID string, sessionExpiration time.Ti
 		UserID: userID,
 	}
 	sm.sessions[sessionID] = session
+
+	slog.Info("Session created", slog.String("sessionID", sessionID), slog.String("userID", userID), slog.Time("expiresAt", sessionExpiration))
 	return sessionID
 }
 
@@ -41,14 +44,22 @@ func (sm *SessionManager) GetSession(sessionID string) (*Session, bool) {
 	defer sm.mu.Unlock()
 
 	session, exists := sm.sessions[sessionID]
-	return session, exists
+	if exists {
+		slog.Info("Session retrieved", slog.String("sessionID", sessionID), slog.String("userID", session.UserID))
+		return session, exists
+	}
+
+	return nil, exists
 }
 
 func (sm *SessionManager) DeleteSession(sessionID string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	delete(sm.sessions, sessionID)
+	if _, exists := sm.sessions[sessionID]; exists {
+		delete(sm.sessions, sessionID)
+		slog.Info("Session deleted", slog.String("sessionID", sessionID))
+	}
 }
 
 func (sm *SessionManager) CleanupExpiredSessions() {
@@ -58,6 +69,7 @@ func (sm *SessionManager) CleanupExpiredSessions() {
 	for id, session := range sm.sessions {
 		if time.Now().After(session.ExpiresAt) {
 			delete(sm.sessions, id)
+			slog.Info("Expired session cleaned up", slog.String("sessionID", id), slog.String("userID", session.UserID))
 		}
 	}
 }

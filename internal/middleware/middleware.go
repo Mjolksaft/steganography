@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"net/http"
 	"steganography/internal/auth"
 )
@@ -18,17 +18,19 @@ func InitSessionManager(sm *auth.SessionManager) {
 	sessionManager = sm
 }
 
-// add middleware to check if the session is valid
+// middleware to check if the session is valid
 func ValidateSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie, err := r.Cookie("session_token")
 		if err != nil {
-			fmt.Println("Error retrieving cookie:", err)
+			slog.Warn("Failed to retrieve session cookie", slog.String("err", err.Error()))
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		session, exists := sessionManager.GetSession(sessionCookie.Value)
 		if !exists {
+			slog.Warn("Session does not exist", slog.String("sessionID", sessionCookie.Value))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -36,14 +38,16 @@ func ValidateSession(next http.Handler) http.Handler {
 		// Store the userID in the context
 		ctx := context.WithValue(r.Context(), KEY, session.UserID)
 		r = r.WithContext(ctx)
+
+		slog.Info("Session validated", slog.String("sessionID", sessionCookie.Value), slog.String("userID", session.UserID))
 		next.ServeHTTP(w, r) // start the next handler
 	})
 }
 
-// add middleware to check if the session is valid
+// ValidateAdmin checks if the user has admin privileges
 func ValidateAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// check if is_admin == True
+		/* TODO: Check is is_admin is true */
 		next.ServeHTTP(w, r) // start the next handler
 	})
 }

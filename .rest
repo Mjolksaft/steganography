@@ -1,4 +1,4 @@
-GET http://localhost:8080/api/passwords
+GET http://localhost:8080/api/passwords?application_name=Riot Client
 
 ######################################################
 POST http://localhost:8080/api/passwords
@@ -14,8 +14,8 @@ POST http://localhost:8080/api/login
 Content-Type: application/json
 
 {
-    "username": "David",
-    "password": "password"
+    "username": "a",
+    "password": "a"
 }
 
 ######################################################

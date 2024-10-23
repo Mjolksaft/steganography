@@ -3,8 +3,9 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
+	"log/slog"
 	"net/http"
+	"net/url"
 	"steganography/internal/auth"
 	"steganography/internal/database"
 	"steganography/internal/middleware"
@@ -32,26 +33,47 @@ func (h PasswordHandler) CreatePassword(w http.ResponseWriter, r *http.Request) 
 	var data dataStruct
 	if err := decoder.Decode(&data); err != nil {
 		http.Error(w, "error decoding", http.StatusInternalServerError)
+		slog.Error("Failed to decode request body", slog.String("userID", userID), slog.String("err", err.Error()))
 		return
 	}
 
-	//convert to uuid
+	// URL-decode the application name
+	decodedAppName, err := url.QueryUnescape(data.Application)
+	if err != nil {
+		http.Error(w, "Invalid application name", http.StatusBadRequest)
+		slog.Error("Invalid application name", slog.String("application", data.Application), slog.String("userID", userID), slog.String("err", err.Error()))
+		return
+	}
+
+	// Convert to uuid
 	parsedID, err := uuid.Parse(userID)
 	if err != nil {
-		http.Error(w, "error decoding", http.StatusInternalServerError)
+		http.Error(w, "error decoding user ID", http.StatusInternalServerError)
+		slog.Error("Failed to parse user ID", slog.String("userID", userID), slog.String("err", err.Error()))
 		return
 	}
 
-	//make the request
+	slog.Info("CreatePassword request received", slog.String("application", decodedAppName), slog.String("userID", parsedID.String()))
+
+	// Create the password in the database
 	dbQueries := database.New(h.DB)
-	arg := database.CreatePasswordParams{HashedPassword: data.Password, ApplicationName: data.Application, UserID: parsedID}
+	arg := database.CreatePasswordParams{
+		HashedPassword:  data.Password,
+		ApplicationName: decodedAppName,
+		UserID:          parsedID,
+	}
+
 	if err = dbQueries.CreatePassword(r.Context(), arg); err != nil {
-		http.Error(w, "error decoding", http.StatusInternalServerError)
+		http.Error(w, "error saving to database", http.StatusInternalServerError)
+		slog.Error("Failed to create password in database", slog.String("application", decodedAppName), slog.String("userID", parsedID.String()), slog.String("err", err.Error()))
 		return
 	}
 
-	// response returns nothing
-	w.WriteHeader(201)
+	slog.Info("Password successfully created", slog.String("application", decodedAppName), slog.String("userID", parsedID.String()))
+
+	// Send success response
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte("Password created successfully"))
 }
 
 func (h PasswordHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
@@ -69,61 +91,77 @@ func (h PasswordHandler) GetPassword(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value(middleware.KEY).(string)
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusInternalServerError)
+		slog.Error("User not found in context", slog.String("contextKey", string(middleware.KEY)))
 		return
 	}
 
-	//convert to uuid
+	// URL-decode the application name
+	decodedAppName, err := url.QueryUnescape(application)
+	if err != nil {
+		http.Error(w, "Invalid application name", http.StatusBadRequest)
+		slog.Error("Invalid application name", slog.String("application", application), slog.String("err", err.Error()))
+		return
+	}
+
+	// Convert to uuid
 	parsedID, err := uuid.Parse(userID)
 	if err != nil {
-		http.Error(w, "error decoding", http.StatusInternalServerError)
+		http.Error(w, "Error decoding user ID", http.StatusInternalServerError)
+		slog.Error("Failed to parse user ID", slog.String("userID", userID), slog.String("err", err.Error()))
 		return
 	}
 
+	slog.Info("GetPassword called", slog.String("application", decodedAppName), slog.String("userID", parsedID.String()))
+
+	dbQueries := database.New(h.DB)
+
 	if application != "" {
-		// return specific password
-		dbQueries := database.New(h.DB)
-		data, err := dbQueries.GetPassword(r.Context(), database.GetPasswordParams{ApplicationName: application, UserID: parsedID})
+		// Return specific password
+		data, err := dbQueries.GetPassword(r.Context(), database.GetPasswordParams{ApplicationName: decodedAppName, UserID: parsedID})
 		if err != nil {
-			fmt.Println(err)
-			http.Error(w, "error quering database", http.StatusInternalServerError)
+			http.Error(w, "Error querying database", http.StatusInternalServerError)
+			slog.Error("Database query failed for GetPassword", slog.String("application", decodedAppName), slog.String("userID", parsedID.String()), slog.String("err", err.Error()))
 			return
 		}
 
-		//encode data
+		// Encode data
 		dataByte, err := json.Marshal(data)
 		if err != nil {
-			fmt.Println(err)
-			http.Error(w, "error encoding data", http.StatusInternalServerError)
+			http.Error(w, "Error encoding data", http.StatusInternalServerError)
+			slog.Error("Failed to encode password data", slog.String("application", decodedAppName), slog.String("userID", parsedID.String()), slog.String("err", err.Error()))
 			return
 		}
 
-		// send data
+		// Send response
 		w.Header().Set("content-type", "application/json; charset=utf8")
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(dataByte)
+
+		// Log successful response
+		slog.Info("Password returned successfully", slog.String("application", decodedAppName), slog.String("userID", parsedID.String()))
 
 	} else {
-		// return passwords
-		dbQueries := database.New(h.DB)
+		// Return all passwords
 		data, err := dbQueries.GetPasswords(r.Context(), parsedID)
-		fmt.Println(data)
 		if err != nil {
-			fmt.Println(err)
-			http.Error(w, "error quering database", http.StatusInternalServerError)
+			http.Error(w, "Error querying database", http.StatusInternalServerError)
+			slog.Error("Database query failed for GetPasswords", slog.String("userID", parsedID.String()), slog.String("err", err.Error()))
 			return
 		}
 
-		//encode data
+		// Encode data
 		dataByte, err := json.Marshal(data)
 		if err != nil {
-			fmt.Println(err)
-			http.Error(w, "error encoding data", http.StatusInternalServerError)
+			http.Error(w, "Error encoding data", http.StatusInternalServerError)
+			slog.Error("Failed to encode passwords data", slog.String("userID", parsedID.String()), slog.String("err", err.Error()))
 			return
 		}
 
-		// send data
+		// Send response
 		w.Header().Set("content-type", "application/json; charset=utf8")
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(dataByte)
+
+		slog.Info("Passwords returned successfully", slog.String("userID", parsedID.String()))
 	}
 }
