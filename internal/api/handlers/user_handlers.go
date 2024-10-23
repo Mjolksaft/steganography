@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"steganography/internal/auth"
 	"steganography/internal/database"
@@ -39,22 +40,29 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // Ensure the body is closed after decoding
 	if err := decoder.Decode(&data); err != nil {
 		http.Error(w, "error decoding body", http.StatusBadRequest)
+		slog.Error("Failed to decode login request body", slog.String("err", err.Error()))
 		return
 	}
 
+	slog.Info("Login attempt", slog.String("username", data.Username))
+
 	// Query the user by username
 	dbQueries := database.New(h.DB)
-	user, err := dbQueries.GetUser(r.Context(), data.Username) // No need for sql.NullString
+	user, err := dbQueries.GetUser(r.Context(), data.Username)
 	if err != nil {
 		http.Error(w, "incorrect username or password", http.StatusUnauthorized)
+		slog.Error("Failed login: user not found or incorrect password", slog.String("username", data.Username), slog.String("err", err.Error()))
 		return
 	}
 
 	// Check the password
 	if err := auth.CheckPassword(user.HashedPassword, data.Password); err != nil {
 		http.Error(w, "incorrect username or password", http.StatusUnauthorized)
+		slog.Error("Failed login: incorrect password", slog.String("username", data.Username), slog.String("err", err.Error()))
 		return
 	}
+
+	slog.Info("Login successful", slog.String("username", data.Username))
 
 	// Map the data to the User struct
 	loggedUser := User{
@@ -62,76 +70,88 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:      user.CreatedAt.Time,
 		UpdatedAt:      user.UpdatedAt.Time,
 		Username:       user.Username,
-		HashedPassword: user.HashedPassword, // It's not necessary to send this back
+		HashedPassword: user.HashedPassword,
 	}
 
-	//encode the user
+	// Encode the user
 	encoded, err := json.Marshal(loggedUser)
 	if err != nil {
 		http.Error(w, "could not marshal", http.StatusInternalServerError)
+		slog.Error("Failed to encode logged-in user data", slog.String("username", data.Username), slog.String("err", err.Error()))
 		return
 	}
 
-	expired_at := time.Now().Add(time.Second * 120)
+	// Create session token
+	expiredAt := time.Now().Add(time.Second * 120)
+	sessionToken := h.SM.CreateSession(loggedUser.ID, expiredAt)
 
-	sessionToken := h.SM.CreateSession(loggedUser.ID, expired_at)
-
+	// Set the session cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:    "session_token",
 		Value:   sessionToken,
-		Expires: expired_at,
+		Expires: expiredAt,
 	})
 
+	slog.Info("Session created", slog.String("username", data.Username), slog.String("sessionToken", sessionToken))
+
+	// Send the response
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK) // Use a constant for the status code
+	w.WriteHeader(http.StatusOK)
 	w.Write(encoded)
 }
 
 func (h UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-
-	// decode the body
+	// Define the struct for user credentials
 	type password struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
 
+	// Decode the request body
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 	var data password
 	if err := decoder.Decode(&data); err != nil {
 		http.Error(w, "error decoding body", http.StatusBadRequest)
+		slog.Error("Failed to decode CreateUser request body", slog.String("err", err.Error()))
 		return
 	}
 
-	// hash the password
+	slog.Info("CreateUser attempt", slog.String("username", data.Username))
+
+	// Hash the password
 	hashedPassword, err := auth.HashPassword(data.Password)
 	if err != nil {
 		http.Error(w, "error hashing password", http.StatusInternalServerError)
+		slog.Error("Failed to hash password", slog.String("username", data.Username), slog.String("err", err.Error()))
 		return
 	}
 
-	// add to database
+	// Add user to the database
 	dbQueries := database.New(h.DB)
 	user, err := dbQueries.CreateUser(r.Context(), database.CreateUserParams{
 		Username:       data.Username,
 		HashedPassword: string(hashedPassword),
 	})
-
 	if err != nil {
 		http.Error(w, "error creating user", http.StatusBadRequest)
+		slog.Error("Failed to create user in the database", slog.String("username", data.Username), slog.String("err", err.Error()))
 		return
 	}
 
-	// encode user
+	slog.Info("User created successfully", slog.String("username", data.Username))
+
+	// Encode user data for response
 	encodedData, err := json.Marshal(user)
 	if err != nil {
 		http.Error(w, "error encoding data", http.StatusInternalServerError)
+		slog.Error("Failed to encode user data for response", slog.String("username", data.Username), slog.String("err", err.Error()))
 		return
 	}
 
-	// write response
+	// Write response
 	w.Header().Add("content-type", "application/json; charset=utf-8")
-	w.WriteHeader(201)
+	w.WriteHeader(http.StatusCreated)
 	w.Write(encodedData)
 }
 
