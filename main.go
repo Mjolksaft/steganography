@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"steganography/internal/api/handlers"
@@ -16,6 +18,20 @@ import (
 var sessionManager *auth.SessionManager
 
 func main() {
+	// load tls cert
+	serverTLSCert, err := tls.LoadX509KeyPair("./server.cert", "./server.key")
+	if err != nil {
+		log.Fatalf("Error loading certificate and key file: %v", err)
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{serverTLSCert},
+	}
+
+	// create a server
+	mux := http.NewServeMux()
+	server := http.Server{Handler: mux, Addr: ":8080", TLSConfig: tlsConfig}
+
 	godotenv.Load()
 
 	// get database connection and sessionManager
@@ -28,11 +44,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	// create a server
-	mux := http.NewServeMux()
-	server := http.Server{Handler: mux, Addr: ":8080"}
-
-	mux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("public"))))
+	// mux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("public"))))
 
 	// users endpoints!!!!
 	userHandlers := handlers.UserHandler{DB: db, SM: sessionManager}
@@ -61,5 +73,5 @@ func main() {
 	mux.Handle("GET /admin/passwords", middleware.ValidateAdmin(http.HandlerFunc(adminHandlers.GetPasswords)))                    // Get all passwords (admin only)
 
 	fmt.Println("now listening on port: 8080")
-	server.ListenAndServe()
+	server.ListenAndServeTLS("", "")
 }

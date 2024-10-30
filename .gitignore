@@ -1,2 +1,4 @@
 .env
 ./.rest
+server.cert
+server.key
