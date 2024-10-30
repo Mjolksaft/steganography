@@ -34,6 +34,21 @@ func (q *Queries) CreatePassword(ctx context.Context, arg CreatePasswordParams) 
 	return err
 }
 
+const deletePassword = `-- name: DeletePassword :exec
+DELETE FROM passwords
+WHERE id = $1 AND user_id = $2
+`
+
+type DeletePasswordParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeletePassword(ctx context.Context, arg DeletePasswordParams) error {
+	_, err := q.db.ExecContext(ctx, deletePassword, arg.ID, arg.UserID)
+	return err
+}
+
 const getPassword = `-- name: GetPassword :one
 SELECT id, created_at, updated_at, hashed_password, application_name, user_id FROM passwords
 WHERE application_name = $1 AND user_id = $2

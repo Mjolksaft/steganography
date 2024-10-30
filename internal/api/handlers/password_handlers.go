@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -81,7 +82,40 @@ func (h PasswordHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h PasswordHandler) DeletePassword(w http.ResponseWriter, r *http.Request) {
+	// Extract password_id from the URL variables
+	passwordId := r.PathValue("password_id")
 
+	// get userId from cotnext
+	userID, ok := r.Context().Value(middleware.KEY).(string)
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusInternalServerError)
+		slog.Error("User not found in context", slog.String("contextKey", string(middleware.KEY)))
+		return
+	}
+	fmt.Println(passwordId, userID)
+	//convert to uuid
+	parsedPasswordId, err := uuid.Parse(passwordId)
+	if err != nil {
+		http.Error(w, "parsing to uuid failed", http.StatusInternalServerError)
+		slog.Error("parsing to uuid failed", slog.String("contextKey", string(middleware.KEY)))
+	}
+	parsedUserId, err := uuid.Parse(userID)
+	if err != nil {
+		http.Error(w, "parsing to uuid failed", http.StatusInternalServerError)
+		slog.Error("parsing to uuid failed", slog.String("contextKey", string(middleware.KEY)))
+	}
+
+	// create query with user id and password id
+	dbQueries := database.New(h.DB)
+	err = dbQueries.DeletePassword(r.Context(), database.DeletePasswordParams{ID: parsedPasswordId, UserID: parsedUserId})
+	if err != nil {
+		http.Error(w, "Query failed in db", http.StatusInternalServerError)
+		slog.Error("Query failed in db", slog.String("contextKey", string(middleware.KEY)))
+	}
+
+	slog.Error("password deleted from db", slog.String("contextKey", string(middleware.KEY)))
+	//return result
+	w.WriteHeader(200)
 }
 
 // Retrieves a password entry for a specific application for the authenticated user. If no application_name is provided, return all passwords for the user.

@@ -13,7 +13,10 @@ VALUES (
 SELECT * FROM passwords
 WHERE user_id = $1;
 
-
 -- name: GetPassword :one
 SELECT * FROM passwords
 WHERE application_name = $1 AND user_id = $2;
+
+-- name: DeletePassword :exec
+DELETE FROM passwords
+WHERE id = $1 AND user_id = $2;

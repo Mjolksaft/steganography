@@ -40,7 +40,7 @@ func main() {
 	mux.HandleFunc("POST /api/users", userHandlers.CreateUser)                                                       // Create a user (public)
 	mux.Handle("PUT /api/users/{user_id}", middleware.ValidateSession(http.HandlerFunc(userHandlers.UpdateUser)))    // Update own user or as admin (authenticated)
 	mux.Handle("DELETE /api/users/{user_id}", middleware.ValidateSession(http.HandlerFunc(userHandlers.DeleteUser))) // Delete own user or as admin (authenticated)
-	mux.Handle("GET /api/users/{user_id}", middleware.ValidateSession(http.HandlerFunc(userHandlers.GetUser)))       // Get user data (authenticated)
+	mux.Handle("GET /api/users", middleware.ValidateSession(http.HandlerFunc(userHandlers.GetUser)))                 // Get user data (authenticated)
 
 	// password endpoints!!!!
 	passwordHandlers := handlers.PasswordHandler{DB: db, SM: sessionManager}
@@ -54,7 +54,7 @@ func main() {
 	mux.Handle("POST /admin/users", middleware.ValidateAdmin(http.HandlerFunc(adminHandlers.CreateUser)))             // Create user (admin only)
 	mux.Handle("PUT /admin/users/{user_id}", middleware.ValidateAdmin(http.HandlerFunc(adminHandlers.UpdateUser)))    // Update any user (admin only)
 	mux.Handle("DELETE /admin/users/{user_id}", middleware.ValidateAdmin(http.HandlerFunc(adminHandlers.DeleteUser))) // Delete any user (admin only)
-	mux.Handle("GET /admin/users", middleware.ValidateAdmin(http.HandlerFunc(adminHandlers.GetUsers)))                // Get all users (admin only)
+	mux.Handle("GET /admin/users/{user_id}", middleware.ValidateAdmin(http.HandlerFunc(adminHandlers.GetUsers)))      // Get all users (admin only)
 
 	mux.Handle("PUT /admin/passwords/{password_id}", middleware.ValidateAdmin(http.HandlerFunc(adminHandlers.UpdatePassword)))    // Update any user's password (admin only)
 	mux.Handle("DELETE /admin/passwords/{password_id}", middleware.ValidateAdmin(http.HandlerFunc(adminHandlers.DeletePassword))) // Delete any user's password (admin only)

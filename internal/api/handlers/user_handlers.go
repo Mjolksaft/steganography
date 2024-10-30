@@ -10,6 +10,8 @@ import (
 	"steganography/internal/database"
 	"steganography/internal/middleware"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type UserHandler struct {
@@ -67,8 +69,8 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// Map the data to the User struct
 	loggedUser := User{
 		ID:             user.ID.String(),
-		CreatedAt:      user.CreatedAt.Time,
-		UpdatedAt:      user.UpdatedAt.Time,
+		CreatedAt:      user.CreatedAt,
+		UpdatedAt:      user.UpdatedAt,
 		Username:       user.Username,
 		HashedPassword: user.HashedPassword,
 	}
@@ -161,11 +163,39 @@ func (h UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(userID, ok)
 	if !ok {
 		http.Error(w, "User not found in context", http.StatusInternalServerError)
+		slog.Error("User not found in context", slog.String("contextKey", string(middleware.KEY)))
 		return
 	}
 
-	// Use userID for logic (e.g., fetching user details from the database)
-	fmt.Fprintf(w, "User ID from context: %s", userID)
+	//parse
+	parserId, err := uuid.Parse(userID)
+	if err != nil {
+		http.Error(w, "error parse data", http.StatusInternalServerError)
+		slog.Error("Failed to parse userid query", slog.String("id", userID), slog.String("err", err.Error()))
+		return
+	}
+
+	// fetch accountInformation, from database with user_Id
+	dbQueries := database.New(h.DB)
+	userData, err := dbQueries.GetUserInfo(r.Context(), parserId)
+	if err != nil {
+		http.Error(w, "error fetching user", http.StatusBadRequest)
+		slog.Error("Failed fetching user", slog.String("id", userID), slog.String("err", err.Error()))
+		return
+	}
+
+	//encode the data
+	encodedData, err := json.Marshal(userData)
+	if err != nil {
+		http.Error(w, "error encoding user", http.StatusBadRequest)
+		slog.Error("Failed encoding user", slog.String("id", userID), slog.String("err", err.Error()))
+		return
+	}
+
+	// return the users info
+	w.Header().Add("Content-type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+	w.Write(encodedData)
 }
 
 func (h UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {

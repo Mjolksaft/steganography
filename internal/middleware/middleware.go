@@ -28,6 +28,7 @@ func ValidateSession(next http.Handler) http.Handler {
 			return
 		}
 
+		// get session
 		session, exists := sessionManager.GetSession(sessionCookie.Value)
 		if !exists {
 			slog.Warn("Session does not exist", slog.String("sessionID", sessionCookie.Value))

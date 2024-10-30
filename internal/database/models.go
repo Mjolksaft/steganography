@@ -5,15 +5,15 @@
 package database
 
 import (
-	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type Password struct {
 	ID              uuid.UUID
-	CreatedAt       sql.NullTime
-	UpdatedAt       sql.NullTime
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 	HashedPassword  string
 	ApplicationName string
 	UserID          uuid.UUID
@@ -21,9 +21,9 @@ type Password struct {
 
 type User struct {
 	ID             uuid.UUID
-	CreatedAt      sql.NullTime
-	UpdatedAt      sql.NullTime
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 	HashedPassword string
 	Username       string
-	IsAdmin        sql.NullBool
+	IsAdmin        bool
 }

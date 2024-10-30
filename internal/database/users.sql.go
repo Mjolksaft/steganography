@@ -7,6 +7,10 @@ package database
 
 import (
 	"context"
+	"encoding/json"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -55,6 +59,60 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 		&i.HashedPassword,
 		&i.Username,
 		&i.IsAdmin,
+	)
+	return i, err
+}
+
+const getUserById = `-- name: GetUserById :one
+SELECT id, created_at, updated_at, hashed_password, username, is_admin FROM users
+WHERE id = $1
+`
+
+func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserById, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.HashedPassword,
+		&i.Username,
+		&i.IsAdmin,
+	)
+	return i, err
+}
+
+const getUserInfo = `-- name: GetUserInfo :one
+SELECT 
+    u.id,
+    u.username,
+    u.created_at,
+    JSON_AGG(p.application_name) AS applications
+FROM 
+    users u
+JOIN 
+    passwords p ON p.user_id = u.id
+WHERE 
+    u.id = $1
+GROUP BY 
+    u.id, u.username
+`
+
+type GetUserInfoRow struct {
+	ID           uuid.UUID
+	Username     string
+	CreatedAt    time.Time
+	Applications json.RawMessage
+}
+
+func (q *Queries) GetUserInfo(ctx context.Context, id uuid.UUID) (GetUserInfoRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserInfo, id)
+	var i GetUserInfoRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.CreatedAt,
+		&i.Applications,
 	)
 	return i, err
 }
