@@ -13,7 +13,7 @@ GET http://localhost:8080/api/passwords
 
 
 ######################################################
-POST http://localhost:8080/api/login
+POST https://localhost:8080/api/login
 Content-Type: application/json
 
 {
